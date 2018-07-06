@@ -1,1 +1,1 @@
-web.3000:gulp
+web:gulp
