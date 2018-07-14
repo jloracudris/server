@@ -4,6 +4,8 @@ var trim = require('lodash.trim');
 var StellarSdk = require('stellar-sdk');
 var app = express();
 var bodyParser = require('body-parser');
+var axios = require('axios');
+
 var keypair = null;
 var conf = {
     master_key:         'GA25BIHT3PV2BFVGE7O63S5RT675FPZ7N3CR2KSBI5GDRD5YTDWZDRK3',
@@ -98,11 +100,40 @@ getPhoneData = function(FromphoneNum, TophoneNum, amount, res) {
         })
 }
 
+getAccountIdData = (accountId, res) => {
+    conf.horizon.payments()
+        .forAccount(accountId)
+        .order('desc')    
+        .call()
+        .then(function (result) {                
+            res.send(result);
+        })
+        .catch(err => {
+            res.status(500).send(`No data have been found`)               
+        });
+}
+
+getReportPhoneData = (phone, res) => {
+    const self = this;
+    axios.post(conf.phoneDataURL, {
+        phone: phone
+    }).then(function(phoneinfo) {
+        getAccountIdData(phoneinfo.data.data.accountId, res);        
+    }).catch(function(error) {        
+        res.status(500).send(`No data have been found with the number ${phone}`)
+    });
+}
+
 app.post('/transfer', function (req, res) {  
   const from = req.body.from;
   const to = req.body.to;
   const amount = req.body.amount;
   getPhoneData(from, to, amount, res);  
+});
+
+app.get('/transactions/:phone', function (req, res) {  
+    const phone = req.params.phone;    
+    getReportPhoneData(phone, res);
 });
 
 app.listen(process.env.PORT || 5000, function () {
