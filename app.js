@@ -7,6 +7,8 @@ var bodyParser = require('body-parser');
 var axios = require('axios');
 
 var keypair = null;
+var transactionReportPhone = null;
+
 var conf = {
     master_key:         'GA25BIHT3PV2BFVGE7O63S5RT675FPZ7N3CR2KSBI5GDRD5YTDWZDRK3',
     horizon_host:       trim("http://blockchain.pexto.tk", '/'),
@@ -103,10 +105,12 @@ getPhoneData = function(FromphoneNum, TophoneNum, amount, res) {
 getAccountIdData = (accountId, res) => {
     conf.horizon.payments()
         .forAccount(accountId)
-        .order('desc')    
+        .order('desc')
+        .limit(100)
         .call()
-        .then(function (result) {                
-            res.send(result);
+        .then(function (result) {
+            console.log(result.records.length);                
+            mapDatasourceTransactionReport(result.records, false, res);            
         })
         .catch(err => {
             res.status(500).send(`No data have been found`)               
@@ -115,13 +119,91 @@ getAccountIdData = (accountId, res) => {
 
 getReportPhoneData = (phone, res) => {
     const self = this;
-    axios.post(conf.phoneDataURL, {
-        phone: phone
-    }).then(function(phoneinfo) {
-        getAccountIdData(phoneinfo.data.data.accountId, res);        
-    }).catch(function(error) {        
-        res.status(500).send(`No data have been found with the number ${phone}`)
-    });
+    transactionReportPhone = phone;    
+    simpleLogin(phone, "Ab" + phone)
+        .then(function (data) {              
+            axios.post(conf.phoneDataURL, {
+                phone: phone
+            }).then(function(phoneinfo) {
+                getAccountIdData(phoneinfo.data.data.accountId, res);  
+            }).catch(function(error) {        
+                res.status(500).send(`No data have been found with the number ${phone}`)
+            });
+        })
+        .catch(err => {                            
+          res.status(500).send(`From Phone wallet not found ${FromphoneNum}`)     
+        })
+}
+
+getTypeTransactions = function (phone, accountId) {
+    var settlementAccount = conf.settlementAccount;
+    console.log(phone)
+    console.log(transactionReportPhone)
+    if (phone === transactionReportPhone){
+        return {
+                class: 'mdc-theme--primary',
+                type: "Deposit"
+            }
+    }
+
+    if (accountId === settlementAccount) {
+         return {
+                class: 'mdc-theme--secondary',
+                type: "Withdraw"
+            }
+    }
+    return {
+                class: 'mdc-theme--secondary',
+                type: "Transfered"
+            }
+}
+
+mapDatasourceTransactionReport = function(ds, concat, res) {            
+    var result = [];
+    var maxLenght = ds.length;            
+    var countExcluded = 0;
+    for(let i = 0; i < ds.length; i++ ) {
+        var accountId = ds[i].to == this.keypair ? ds[i].from : ds[i].to;        
+         axios.post(conf.phoneDataURL, {
+            accountId: accountId
+        }).then(function(phoneinfo) {                        
+            var transaction = {
+                closed_at: ds[i].closed_at,
+                asset_code: ds[i].asset_code,
+                to: ds[i].to,
+                phoneNumber: phoneinfo.data.data.phone,
+                amount: ds[i].amount,
+                id: ds[i].id,
+                type: getTypeTransactions(phoneinfo.data.data.phone, ds[i].to),
+                feeValue: ds[i].fee.amount_changed  ? Math.round(Number(ds[i].fee.amount_changed) * 100) / 100 : -1
+            }                    
+            result.push(transaction)                        
+            if (result.length === ds.length - countExcluded) {
+                const rs = result.sort(function(a, b) {
+                    return new Date(b.closed_at) - new Date(a.closed_at);
+                });                       
+                res.send(rs);
+            }
+        }).catch(function(error) {
+                var transaction = {
+                    closed_at: ds[i].closed_at,
+                    asset_code: ds[i].asset_code,
+                    to: ds[i].to,
+                    phoneNumber: '',
+                    amount: ds[i].amount,
+                    id: ds[i].id,
+                    type: getTypeTransactions('', ds[i].to),
+                    feeValue: ds[i].fee.amount_changed  ? Math.round(Number(ds[i].fee.amount_changed) * 100) / 100 : -1
+                }                    
+                result.push(transaction)                        
+                if (result.length === ds.length - countExcluded) {
+                    const rs = result.sort(function(a, b) {
+                        return new Date(b.closed_at) - new Date(a.closed_at);
+                    });                       
+                    res.send(rs);
+                }
+        });
+    }            
 }
 
 app.post('/transfer', function (req, res) {  
