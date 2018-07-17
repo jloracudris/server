@@ -109,7 +109,6 @@ getAccountIdData = (accountId, res) => {
         .limit(100)
         .call()
         .then(function (result) {
-            console.log(result.records.length);                
             mapDatasourceTransactionReport(result.records, false, res);            
         })
         .catch(err => {
