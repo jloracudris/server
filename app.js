@@ -136,9 +136,7 @@ getReportPhoneData = (phone, res) => {
 }
 
 getTypeTransactions = function (phone, accountId) {
-    var settlementAccount = conf.settlementAccount;
-    console.log(phone)
-    console.log(transactionReportPhone)
+    var settlementAccount = conf.settlementAccount;    
     if (phone === transactionReportPhone){
         return {
                 class: 'mdc-theme--primary',
@@ -146,7 +144,7 @@ getTypeTransactions = function (phone, accountId) {
             }
     }
 
-    if (accountId === settlementAccount) {
+    if (!phone) {
          return {
                 class: 'mdc-theme--secondary',
                 type: "Withdraw"
