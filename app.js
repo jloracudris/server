@@ -11,17 +11,17 @@ var transactionReportPhone = null;
 
 var conf = {
     master_key:         'GA25BIHT3PV2BFVGE7O63S5RT675FPZ7N3CR2KSBI5GDRD5YTDWZDRK3',
-    horizon_host:       trim("http://blockchain.pexto.co", '/'),
-    api_url:            'http://api.pexto.co',
+    horizon_host:       trim("http://blockchain.pexto.tk", '/'),
+    api_url:            'http://api.pexto.tk',
     project_name:       'PEXTO',
 };
 
 conf.SmartApi = new smart_api({
-    host: 'http://api.pexto.co'
+    host: 'http://api.pexto.tk'
 });
 
 conf.horizon = new StellarSdk.Server(conf.horizon_host);
-conf.phoneDataURL = 'http://api.pexto.co/wallets/getdata';
+conf.phoneDataURL = 'http://api.pexto.tk/wallets/getdata';
 
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json()); // support json encoded bodies
